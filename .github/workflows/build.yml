@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
     steps:
       - uses: actions/checkout@v4
 
@@ -18,10 +20,10 @@ jobs:
           java-version: '17'
 
       - name: Android SDK litsenziyalarini qabul qilish
-        run: yes | sdkmanager --licenses || true
+        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
       - name: Kerakli SDK paketlarini o'rnatish
-        run: sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+        run: $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
       - name: Gradle o'rnatish
         uses: gradle/actions/setup-gradle@v4
