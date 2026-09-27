@@ -30,9 +30,6 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.mlkit.nl.languageid.LanguageIdentification
-import com.google.mlkit.nl.translate.TranslateLanguage
-import com.google.mlkit.nl.translate.Translation
-import com.google.mlkit.nl.translate.TranslatorOptions
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
@@ -42,7 +39,13 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLEncoder
 
+/**
+ * OCR Tarjimon — hammasi shu bitta faylda.
+ * Tarjima uchun MyMemory (bepul, kalitsiz) onlayn xizmatidan foydalaniladi,
+ * chunki ML Kit'ning o'z tarjima kutubxonasi o'zbek tilini qo'llab-quvvatlamaydi.
+ */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var previewView: PreviewView
@@ -55,13 +58,9 @@ class MainActivity : AppCompatActivity() {
     private val languageIdentifier = LanguageIdentification.getClient()
     private var isProcessing = false
 
-    private val targetLangs = listOf(
-        TranslateLanguage.UZBEK to "UZ",
-        TranslateLanguage.ENGLISH to "EN",
-        TranslateLanguage.RUSSIAN to "RU"
-    )
+    private val targetLangs = listOf("uz" to "UZ", "en" to "EN", "ru" to "RU")
     private var targetLangIndex = 0
-    private val targetLang get() = targetLangs[targetLangIndex].first
+    private val targetLangCode get() = targetLangs[targetLangIndex].first
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
 
@@ -228,33 +227,39 @@ class MainActivity : AppCompatActivity() {
     private fun translateDetectedText(text: String) {
         languageIdentifier.identifyLanguage(text)
             .addOnSuccessListener { langCode ->
-                val sourceLang = if (langCode == "und") null else TranslateLanguage.fromLanguageTag(langCode)
-                if (sourceLang == null) {
+                if (langCode == "und") {
                     isProcessing = false
                     return@addOnSuccessListener
                 }
-                if (sourceLang == targetLang) {
+                if (langCode == targetLangCode) {
                     translatedText.text = text
                     isProcessing = false
                     return@addOnSuccessListener
                 }
-                val options = TranslatorOptions.Builder()
-                    .setSourceLanguage(sourceLang)
-                    .setTargetLanguage(targetLang)
-                    .build()
-                val translator = Translation.getClient(options)
-                translator.downloadModelIfNeeded()
-                    .addOnSuccessListener {
-                        translator.translate(text)
-                            .addOnSuccessListener { translated ->
-                                translatedText.text = translated
-                                isProcessing = false
-                            }
-                            .addOnFailureListener { isProcessing = false }
-                    }
-                    .addOnFailureListener { isProcessing = false }
+                fetchTranslation(text, langCode, targetLangCode)
             }
             .addOnFailureListener { isProcessing = false }
+    }
+
+    private fun fetchTranslation(text: String, source: String, target: String) {
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                try {
+                    val encoded = URLEncoder.encode(text, "UTF-8")
+                    val url = URL("https://api.mymemory.translated.net/get?q=$encoded&langpair=$source|$target")
+                    val conn = url.openConnection() as HttpURLConnection
+                    conn.connectTimeout = 8000
+                    conn.readTimeout = 8000
+                    val body = conn.inputStream.bufferedReader().readText()
+                    conn.disconnect()
+                    JSONObject(body).getJSONObject("responseData").getString("translatedText")
+                } catch (e: Exception) {
+                    null
+                }
+            }
+            translatedText.text = result ?: text
+            isProcessing = false
+        }
     }
 
     private fun requestLocationAndWeather() {
@@ -344,4 +349,5 @@ class MainActivity : AppCompatActivity() {
         recognizer.close()
         languageIdentifier.close()
     }
-}
+} {
+                    val url = 
