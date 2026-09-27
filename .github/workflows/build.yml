@@ -22,6 +22,9 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Imzo uchun keystore yaratish
+        run: keytool -genkeypair -v -keystore release.keystore -alias ocrtarjimon -storepass ocrtarjimon123 -keypass ocrtarjimon123 -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Lutfullo, OU=Dev, O=OCRTarjimon, L=Tashkent, S=Tashkent, C=UZ"
+
       - name: Android SDK litsenziyalarini qabul qilish
         run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
@@ -33,12 +36,12 @@ jobs:
         with:
           gradle-version: 8.7
 
-      - name: Debug APK qurish
-        run: gradle assembleDebug
+      - name: Release APK qurish
+        run: gradle assembleRelease
 
       - name: Release sifatida yuklash
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
           name: OCR Tarjimon
-          files: app/build/outputs/apk/debug/app-debug.apk
+          files: app/build/outputs/apk/release/app-release.apk
