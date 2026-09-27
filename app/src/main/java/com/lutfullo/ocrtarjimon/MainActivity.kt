@@ -348,4 +348,6 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         recognizer.close()
         languageIdentifier.close()
+    }
+}
 
